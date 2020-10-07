@@ -1,0 +1,17 @@
+server:
+  port: 8081
+  error:
+    include-message: always
+
+spring:
+  datasource:
+    username: user
+    password: changeme
+    url: jdbc:postgresql://localhost/reservation
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connectionTimeout: 30000
+      idleTimeout: 600000
+      maxLifetime: 1800000
+  flyway:
+    validate-migration-naming: true
