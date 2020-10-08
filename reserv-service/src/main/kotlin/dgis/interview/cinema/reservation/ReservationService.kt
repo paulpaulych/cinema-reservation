@@ -3,11 +3,8 @@ package dgis.interview.cinema.reservation
 import dgis.interview.cinema.customer.CustomerRepo
 import dgis.interview.cinema.room.SeatPresenceRes
 import dgis.interview.cinema.room.Seat
-import dgis.interview.cinema.room.SeatMissionError
 import dgis.interview.cinema.session.SessionRepo
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Isolation
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ReservationService(
@@ -16,38 +13,38 @@ class ReservationService(
     private val sessionRepo: SessionRepo
 ) {
 
-    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    //TODO: обернуть в транзакцию
     fun reserveSeats(sessionId: Long, customerId: Long, seats: List<Seat>): ReservationRes {
-        val customer = customerRepo.findById(customerId)
+        customerRepo.findById(customerId)
             ?: return ReservationRes.CustomerNotFound(customerId)
         val session = sessionRepo.findById(sessionId)
             ?: return ReservationRes.SessionNotFound(sessionId)
 
-        (session.room.hasSits(seats) as? SeatPresenceRes.SeatsAbsent)
-            ?. let { return ReservationRes.SeatsMissing(it.errors) }
+        (session.room.hasSeats(seats) as? SeatPresenceRes.Missed)
+            ?. let { return ReservationRes.SeatsMissing(it.seats) }
 
-        val reserved = reservationRepo.findBySession(session)
+        val reserved = reservationRepo.findBySession(session.id)
             .flatMap { it.seats }
             .toSet()
 
         val (collided, free) = seats.partition { reserved.contains(it) }
 
         if(collided.isNotEmpty()){
-            return ReservationRes.CollisionOccurred(collided)
+            return ReservationRes.AlreadyReserved(collided)
         }
 
-        reservationRepo.add(free.map { Reservation(null, session, customer, free) })
+        reservationRepo.add(sessionId, customerId, free)
 
         return ReservationRes.Success
     }
 
-    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    //TODO: обернуть в транзакцию
     fun getReservationStatus(sessionId: Long): ReservationStatusRes {
         val session = sessionRepo.findById(sessionId)
             ?: return ReservationStatusRes.SessionNotFound(sessionId)
-        val reserved = reservationRepo.findBySession(session).flatMap { it.seats }.toSet()
+        val reserved = reservationRepo.findBySession(sessionId).flatMap { it.seats }.toSet()
         val seatStatuses = session.room.getAllSeats()
-            .map { SeatStatus(it, reserved.contains(it)) }
+            .map { SeatStatus(it, !reserved.contains(it)) }
             .toList()
         return ReservationStatusRes.Success(seatStatuses)
     }
@@ -69,8 +66,8 @@ data class SeatStatus(
 sealed class ReservationRes {
     object Success: ReservationRes()
     data class SessionNotFound(val sessionId: Long): ReservationRes()
-    data class CollisionOccurred(val reservedSeats: List<Seat>): ReservationRes()
+    data class AlreadyReserved(val reservedSeats: List<Seat>): ReservationRes()
     data class CustomerNotFound(val customerId: Long): ReservationRes()
     //TODO: missing или absent
-    data class SeatsMissing(val errors: List<SeatMissionError>): ReservationRes()
+    data class SeatsMissing(val seats: List<Seat>): ReservationRes()
 }

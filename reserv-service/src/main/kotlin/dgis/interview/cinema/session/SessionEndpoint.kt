@@ -1,10 +1,7 @@
 package dgis.interview.cinema.session
 
-import dgis.interview.cinema.room.RoomRepo
+import dgis.interview.cinema.webcommon.HTTP
 import org.springframework.http.ResponseEntity
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Isolation
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -15,6 +12,11 @@ data class AddSessionReq(
     val roomId: Long
 )
 
+private enum class ErrorCode {
+    ROOM_NOT_FOUND,
+    ALREADY_EXISTS
+}
+
 @RestController
 @RequestMapping("/session")
 class SessionEndpoint(
@@ -22,32 +24,10 @@ class SessionEndpoint(
 ) {
 
     @PutMapping
-    fun addSession(@RequestBody req: AddSessionReq): ResponseEntity<*>{
-        return when(val res = sessionService.addSession(req.id, req.roomId)){
-            is AddSessionRes.Success -> { TODO() }
-            is AddSessionRes.RoomNotFound -> { TODO() }
+    fun addSession(@RequestBody req: AddSessionReq): ResponseEntity<*> =
+        when(sessionService.addSession(req.id, req.roomId)){
+            is AddSessionRes.Success -> HTTP.ok()
+            is AddSessionRes.RoomNotFound -> HTTP.conflict(code = ErrorCode.ROOM_NOT_FOUND.name)
+            is AddSessionRes.AlreadyExists -> HTTP.conflict(code = ErrorCode.ALREADY_EXISTS.name)
         }
-    }
-
-}
-
-@Service
-class SessionService(
-    private val sessionRepo: SessionRepo,
-    private val roomRepo: RoomRepo
-){
-
-    @Transactional(isolation = Isolation.REPEATABLE_READ)
-    fun addSession(sessionId: Long, roomId: Long): AddSessionRes {
-        val room = roomRepo.findById(roomId)
-            ?: return AddSessionRes.RoomNotFound(roomId)
-        sessionRepo.add(Session(sessionId, room))
-        return AddSessionRes.Success
-    }
-}
-
-
-sealed class AddSessionRes{
-    object Success: AddSessionRes()
-    data class RoomNotFound(val roomId: Long): AddSessionRes()
 }

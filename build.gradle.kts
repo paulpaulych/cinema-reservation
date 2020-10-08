@@ -7,7 +7,7 @@ plugins {
     kotlin("multiplatform") version kotlinVersion apply false
     kotlin("plugin.spring") version kotlinVersion apply false
     kotlin("kapt") version kotlinVersion apply false
-    id("org.springframework.boot") version springBootVersion  apply false
+    id("org.springframework.boot") version springBootVersion apply false
     id("org.flywaydb.flyway") version flywayVersion apply false
 }
 

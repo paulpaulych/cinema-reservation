@@ -15,8 +15,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     implementation("io.konform:konform-jvm:0.2.0")
 
@@ -26,7 +26,7 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api:1.7.30")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.11.3")
 
     testApi("org.junit.jupiter:junit-jupiter-api:5.5.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.5.0")

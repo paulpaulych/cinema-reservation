@@ -2,31 +2,37 @@ package dgis.interview.cinema.room
 
 
 data class Room (
-    val id: Long?
+    val rowSizes: Map<Int, Int>
 ){
-    fun hasSits(seats: Collection<Seat>): SeatPresenceRes {
-        TODO("not implemented yet")
-    }
+
+    fun hasSeats(seats: Collection<Seat>): SeatPresenceRes =
+        seats.filter {
+            !rowSizes.containsKey(it.rowNum)
+                    || rowSizes[it.rowNum]!! < it.seatNum
+                    || it.seatNum < 1
+        }.takeIf { it.isNotEmpty() }
+            ?.let { SeatPresenceRes.Missed(it) }
+            ?: SeatPresenceRes.AllPresent
 
     /**
      * Generates sequence of all seats present in this room
      */
-    fun getAllSeats(): Sequence<Seat>{
-        TODO("not implemented yet")
-    }
+    fun getAllSeats(): Sequence<Seat> =
+        rowSizes.map { (rowNum, seatCount) ->
+            generateSequence(Seat(rowNum, 1)){ seat ->
+                (seat.seatNum + 1).takeIf { it <= seatCount}
+                    ?.let{seat.copy(seatNum = it)}
+            }
+        }.reduce(Sequence<Seat>::plus)
+
 }
 
 data class Seat (
-    val row: Int,
-    val col: Int
+    val rowNum: Int,
+    val seatNum: Int
 )
 
-data class SeatMissionError(
-    val seat: Seat,
-    val message: String
-): SeatPresenceRes()
-
 sealed class SeatPresenceRes{
-    data class SeatsAbsent(val errors: List<SeatMissionError>): SeatPresenceRes()
+    data class Missed(val seats: List<Seat>): SeatPresenceRes()
     object AllPresent: SeatPresenceRes()
 }

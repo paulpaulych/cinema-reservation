@@ -1,9 +1,16 @@
 package dgis.interview.cinema.reservation
 
 import dgis.interview.cinema.room.Seat
+import dgis.interview.cinema.webcommon.HTTP
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
+private enum class ErrorCode {
+    ALREADY_RESERVED,
+    CUSTOMER_NOT_FOUND,
+    SEATS_MISSING,
+    SESSION_NOT_FOUND
+}
 
 @RestController
 @RequestMapping("/reservation")
@@ -15,20 +22,24 @@ class ReservationEndpoint(
     fun createReservations(
         @RequestParam("sessionId") sessionId: Long,
         @RequestParam("customerId") customerId: Long,
-        @RequestBody seats: List<Seat>): ResponseEntity<*> {
-        return when(val res = reservationService.reserveSeats(sessionId, customerId, seats)){
-            is ReservationRes.CollisionOccurred -> { TODO() }
-            is ReservationRes.CustomerNotFound -> { TODO() }
-            is ReservationRes.SeatsMissing -> { TODO() }
-            is ReservationRes.SessionNotFound -> {TODO() }
-            is ReservationRes.Success -> { TODO() }
+        @RequestBody seats: List<Seat>
+    ): ResponseEntity<*> =
+        when(val res = reservationService.reserveSeats(sessionId, customerId, seats)){
+            is ReservationRes.CustomerNotFound -> HTTP.conflict(code = ErrorCode.CUSTOMER_NOT_FOUND.name)
+            is ReservationRes.SessionNotFound -> HTTP.conflict(code = ErrorCode.SESSION_NOT_FOUND.name)
+            is ReservationRes.AlreadyReserved -> HTTP.conflict(
+                    code = ErrorCode.ALREADY_RESERVED.name,
+                    payload = res.reservedSeats)
+            is ReservationRes.SeatsMissing -> HTTP.conflict(
+                    code = ErrorCode.SEATS_MISSING.name,
+                    payload = res.seats)
+            is ReservationRes.Success -> HTTP.ok()
         }
-    }
 
     @GetMapping
     fun getReservations(@RequestParam("sessionId") sessionId: Long): ResponseEntity<*> =
         when(val res = reservationService.getReservationStatus(sessionId)){
-            is ReservationStatusRes.SessionNotFound -> { TODO() }
-            is ReservationStatusRes.Success -> ResponseEntity.ok(res.seatStatuses)
+            is ReservationStatusRes.SessionNotFound -> HTTP.conflict(code = ErrorCode.SESSION_NOT_FOUND.name)
+            is ReservationStatusRes.Success -> HTTP.ok(res.seatStatuses)
         }
 }
