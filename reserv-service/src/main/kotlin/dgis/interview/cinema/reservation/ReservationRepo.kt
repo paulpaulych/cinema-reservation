@@ -3,42 +3,54 @@ package dgis.interview.cinema.reservation
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import dgis.interview.cinema.LoggerProperty
+import dgis.interview.cinema.db.DB
 import dgis.interview.cinema.db.prepareInsertStatement
 import dgis.interview.cinema.db.queryList
+import dgis.interview.cinema.room.Room
 import dgis.interview.cinema.room.Seat
+import dgis.interview.cinema.session.SessionRepo
+import dgis.interview.cinema.transaction.Isolation
+import dgis.interview.cinema.transaction.Propagation
 import org.springframework.stereotype.Repository
-import javax.sql.DataSource
 
 @Repository
 class ReservationRepo(
-    private val ds: DataSource
+    private val db: DB,
+    private val sessionRepo: SessionRepo
 ) {
 
     private val log by LoggerProperty()
     private val json = jacksonObjectMapper()
 
     fun findBySession(sessionId: Long): Collection<Reservation> =
-        ds.connection.use { conn ->
+        db.inTransaction(
+            isolation = Isolation.READ_COMMITTED,
+            propagation = Propagation.USE_EXISTING
+        ) {
             val sql = ResourceLoader.asText("sql/reservations_by_session.sql")
-            conn.prepareStatement(sql)
+            prepareStatement(sql)
                 .apply { setLong(1, sessionId) }
                 .queryList { rs, _ ->
                     val seats = json.readValue<Map<Int, Int>>(rs.getString("seats"))
-                            .map { (k, v) -> Seat(k, v) }
+                        .map { (k, v) -> Seat(k, v) }
                     Reservation(
-                            customerId = rs.getLong("customer_id"),
-                            seats = seats
+                        customerId = rs.getLong("customer_id"),
+                        seats = seats
                     )
                 }
         }
 
 
-    //TODO: обернуть в транзакцию
     fun add(sessionId: Long, customerId: Long, seats: Collection<Seat>){
-        log.debug("saving reservation: sessionId: {}, customerId: {}, seats: {}", sessionId, customerId, seats)
-        ds.connection.use { conn ->
+        log.debug("saving reservation: sessionId: {}, customerId: {}, seats: {}",
+            sessionId, customerId, seats)
+
+        db.inTransaction(
+            isolation = Isolation.READ_COMMITTED,
+            propagation = Propagation.USE_EXISTING) {
+
             val generatedId =
-                conn.prepareInsertStatement("insert into reservations(session_id, customer_id) values(?, ?)")
+                prepareInsertStatement("insert into reservations(session_id, customer_id) values(?, ?)")
                 .apply {
                     setLong(1, sessionId)
                     setLong(2, customerId)
@@ -48,7 +60,7 @@ class ReservationRepo(
                     it.getLong(1)
                 }
 
-            conn.prepareStatement(
+            prepareStatement(
                 "insert into reservation_seats(reservation_id, row_num, seat_num) values (?, ?, ?)"
             ).apply {
                 seats.forEach {
@@ -63,3 +75,7 @@ class ReservationRepo(
     }
 }
 
+sealed class ReservedSeatsRes{
+    data class Success(val reservedSeats: Set<Seat>, val room: Room): ReservedSeatsRes()
+    object SessionNotFound: ReservedSeatsRes()
+}

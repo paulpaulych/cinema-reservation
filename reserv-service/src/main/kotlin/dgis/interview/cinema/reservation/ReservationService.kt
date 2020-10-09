@@ -1,65 +1,73 @@
 package dgis.interview.cinema.reservation
 
 import dgis.interview.cinema.LoggerProperty
+import dgis.interview.cinema.db.DB
 import dgis.interview.cinema.room.SeatPresenceRes
 import dgis.interview.cinema.room.Seat
 import dgis.interview.cinema.session.SessionRepo
+import dgis.interview.cinema.transaction.Isolation
+import dgis.interview.cinema.transaction.Propagation
 import org.springframework.stereotype.Service
 
 @Service
 class ReservationService(
     private val reservationRepo: ReservationRepo,
-    private val sessionRepo: SessionRepo
+    private val sessionRepo: SessionRepo,
+    private val db: DB
 ) {
 
     private val log by LoggerProperty()
-    //TODO: обернуть в транзакцию
+
     fun reserveSeats(sessionId: Long, customerId: Long, seats: List<Seat>): ReservationRes {
+        /*
+        не включаем это в транзакцию с учетом того что сеанс и кинозал
+        не могут быть удалены или изменены
+        */
         val session = sessionRepo.findById(sessionId)
             ?: return ReservationRes.SessionNotFound
-
         (session.room.hasSeats(seats) as? SeatPresenceRes.Missed)
-            ?. let { return ReservationRes.SeatsMissing(it.seats) }
+            ?.let { return ReservationRes.SeatsMissing(it.seats) }
 
-        val reserved = reservationRepo.findBySession(session.id)
-            .flatMap { it.seats }
-            .toSet()
-        log.debug("fetched reserved seats by session(id = {}): {}", sessionId, reserved)
+        return db.inTransaction(
+            isolation = Isolation.REPEATABLE_READ) {
 
-        val (collided, free) = seats.partition { reserved.contains(it) }
-
-        if(collided.isNotEmpty()){
-            return ReservationRes.AlreadyReserved(collided)
+            val reserved = reservationRepo.findBySession(session.id)
+                .flatMap { it.seats }
+                .toSet()
+            log.debug("fetched reserved seats by session(id = {}): {}", sessionId, reserved)
+            val (collided, free) = seats.partition { reserved.contains(it) }
+            if (collided.isNotEmpty()) {
+                return@inTransaction ReservationRes.AlreadyReserved(collided)
+            }
+            reservationRepo.add(sessionId, customerId, free)
+            ReservationRes.Success
         }
-
-        reservationRepo.add(sessionId, customerId, free)
-
-        return ReservationRes.Success
     }
 
-    //TODO: обернуть в транзакцию
     fun getReservationStatus(sessionId: Long): ReservationStatusRes {
         val session = sessionRepo.findById(sessionId)
-            ?: return ReservationStatusRes.SessionNotFound(sessionId)
-        val reserved = reservationRepo.findBySession(sessionId).flatMap { it.seats }.toSet()
+            ?: return ReservationStatusRes.SessionNotFound
+        val customerBySeat = reservationRepo.findBySession(sessionId)
+            .flatMap { (customerId, seats) -> seats.map { it to customerId } }
+            .toMap()
         val seatStatuses = session.room.getAllSeats()
-            .map { SeatStatus(it, !reserved.contains(it)) }
+            .map { SeatStatus(it, customerBySeat[it]) }
             .toList()
         return ReservationStatusRes.Success(seatStatuses)
     }
-
 }
 
+
+
 sealed class ReservationStatusRes {
-    data class SessionNotFound(val sessionId: Long)
-        : ReservationStatusRes()
+    object SessionNotFound: ReservationStatusRes()
     data class Success(val seatStatuses: List<SeatStatus>)
         : ReservationStatusRes()
 }
 
 data class SeatStatus(
     val seat: Seat,
-    val free: Boolean
+    val customerId: Long?,
 )
 
 sealed class ReservationRes {

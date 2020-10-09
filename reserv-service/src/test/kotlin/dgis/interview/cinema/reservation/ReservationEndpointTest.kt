@@ -1,6 +1,5 @@
 package dgis.interview.cinema.reservation
 
-import com.fasterxml.jackson.module.kotlin.readValue
 import dgis.interview.cinema.BaseIntegrationTest
 import dgis.interview.cinema.SafeErrorRes
 import dgis.interview.cinema.extractBody
@@ -11,7 +10,6 @@ import dgis.interview.cinema.session.AddSessionReq
 import io.kotest.matchers.shouldBe
 import io.restassured.filter.log.ResponseLoggingFilter
 import io.restassured.http.ContentType
-import io.restassured.module.kotlin.extensions.Extract
 import io.restassured.module.kotlin.extensions.Given
 import io.restassured.module.kotlin.extensions.Then
 import io.restassured.module.kotlin.extensions.When
@@ -39,10 +37,10 @@ internal class ReservationEndpointTest(
             Seat(1, 2)
     )
     private val after1Statuses = setOf(
-            SeatStatus(Seat(1, 1), false),
-            SeatStatus(Seat(1, 2), true),
-            SeatStatus(Seat(2, 1), true),
-            SeatStatus(Seat(2, 2), false),
+            SeatStatus(Seat(1, 1), 1),
+            SeatStatus(Seat(1, 2), null),
+            SeatStatus(Seat(2, 1), null),
+            SeatStatus(Seat(2, 2), 1),
     )
 
     @Test
