@@ -1,6 +1,6 @@
 package dgis.interview.cinema.reservation
 
-import dgis.interview.cinema.customer.CustomerRepo
+import dgis.interview.cinema.LoggerProperty
 import dgis.interview.cinema.room.SeatPresenceRes
 import dgis.interview.cinema.room.Seat
 import dgis.interview.cinema.session.SessionRepo
@@ -9,16 +9,14 @@ import org.springframework.stereotype.Service
 @Service
 class ReservationService(
     private val reservationRepo: ReservationRepo,
-    private val customerRepo: CustomerRepo,
     private val sessionRepo: SessionRepo
 ) {
 
+    private val log by LoggerProperty()
     //TODO: обернуть в транзакцию
     fun reserveSeats(sessionId: Long, customerId: Long, seats: List<Seat>): ReservationRes {
-        customerRepo.findById(customerId)
-            ?: return ReservationRes.CustomerNotFound(customerId)
         val session = sessionRepo.findById(sessionId)
-            ?: return ReservationRes.SessionNotFound(sessionId)
+            ?: return ReservationRes.SessionNotFound
 
         (session.room.hasSeats(seats) as? SeatPresenceRes.Missed)
             ?. let { return ReservationRes.SeatsMissing(it.seats) }
@@ -26,6 +24,7 @@ class ReservationService(
         val reserved = reservationRepo.findBySession(session.id)
             .flatMap { it.seats }
             .toSet()
+        log.debug("fetched reserved seats by session(id = {}): {}", sessionId, reserved)
 
         val (collided, free) = seats.partition { reserved.contains(it) }
 
@@ -65,9 +64,8 @@ data class SeatStatus(
 
 sealed class ReservationRes {
     object Success: ReservationRes()
-    data class SessionNotFound(val sessionId: Long): ReservationRes()
+    object SessionNotFound: ReservationRes()
     data class AlreadyReserved(val reservedSeats: List<Seat>): ReservationRes()
-    data class CustomerNotFound(val customerId: Long): ReservationRes()
     //TODO: missing или absent
     data class SeatsMissing(val seats: List<Seat>): ReservationRes()
 }

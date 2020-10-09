@@ -35,7 +35,7 @@ class SessionRepo(
     fun add(sessionId: Long, roomId: Long): AddOneRes {
         ds.connection.use { conn ->
             val exists = conn.prepareStatement("select id from sessions where id = ?")
-                .apply { setLong(1, roomId) }
+                .apply { setLong(1, sessionId) }
                 .hasAny()
 
             if (exists) return AddOneRes.AlreadyExists

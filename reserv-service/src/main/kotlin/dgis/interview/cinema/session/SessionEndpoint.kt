@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 data class AddSessionReq(
-    val id: Long,
-    val roomId: Long
+        val id: Long,
+        val roomExternalId: Long
 )
 
 private enum class ErrorCode {
@@ -25,7 +25,7 @@ class SessionEndpoint(
 
     @PutMapping
     fun addSession(@RequestBody req: AddSessionReq): ResponseEntity<*> =
-        when(sessionService.addSession(req.id, req.roomId)){
+        when(sessionService.addSession(req.id, req.roomExternalId)){
             is AddSessionRes.Success -> HTTP.ok()
             is AddSessionRes.RoomNotFound -> HTTP.conflict(code = ErrorCode.ROOM_NOT_FOUND.name)
             is AddSessionRes.AlreadyExists -> HTTP.conflict(code = ErrorCode.ALREADY_EXISTS.name)

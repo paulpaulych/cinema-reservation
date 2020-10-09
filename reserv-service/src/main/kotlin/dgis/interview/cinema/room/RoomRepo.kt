@@ -14,21 +14,21 @@ class RoomRepo(
 ): IdAccessRepo<Room, Long> {
 
     //TODO: навернуть транзакцию
-    fun add(roomId: Long, rowSizes: Map<Int, Int>): AddOneRes =
+    fun add(id: Long, rowSizes: Map<Int, Int>): AddOneRes =
         ds.connection.use { conn ->
             val exists = conn.prepareStatement("select id from rooms where id = ?")
-                .apply { setLong(1, roomId) }
+                .apply { setLong(1, id) }
                 .hasAny()
 
             if (exists) return AddOneRes.AlreadyExists
 
             conn.prepareStatement("insert into rooms(id) values (?)")
-                .apply { setLong(1, roomId) }
+                .apply { setLong(1, id) }
                 .execute()
             conn.prepareStatement("insert into room_rows(room_id, row_num, seat_count) values (?, ?, ?)")
                 .apply {
                     rowSizes.forEach { (rowNum, seatCount) ->
-                        setLong(1, roomId)
+                        setLong(1, id)
                         setInt(2, rowNum)
                         setInt(3, seatCount)
                         addBatch()
@@ -36,7 +36,6 @@ class RoomRepo(
                 }.executeBatch()
             return AddOneRes.Success
         }
-
 
 
     override fun findById(id: Long): Room? {

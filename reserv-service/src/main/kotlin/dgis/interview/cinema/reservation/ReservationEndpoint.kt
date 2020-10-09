@@ -25,7 +25,6 @@ class ReservationEndpoint(
         @RequestBody seats: List<Seat>
     ): ResponseEntity<*> =
         when(val res = reservationService.reserveSeats(sessionId, customerId, seats)){
-            is ReservationRes.CustomerNotFound -> HTTP.conflict(code = ErrorCode.CUSTOMER_NOT_FOUND.name)
             is ReservationRes.SessionNotFound -> HTTP.conflict(code = ErrorCode.SESSION_NOT_FOUND.name)
             is ReservationRes.AlreadyReserved -> HTTP.conflict(
                     code = ErrorCode.ALREADY_RESERVED.name,

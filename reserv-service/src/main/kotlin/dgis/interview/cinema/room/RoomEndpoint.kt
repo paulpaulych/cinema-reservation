@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 data class AddRoomReq(
-    val id: Long,
-    val rowSizes: Map<Int, Int>
+        val id: Long,
+        val rowSizes: Map<Int, Int>
 )
 
 private const val ALREADY_EXISTS = "ALREADY_EXISTS"

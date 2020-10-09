@@ -1,14 +1,17 @@
 package dgis.interview.cinema.reservation
 
-import dgis.interview.cinema.customer.Customer
-
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import dgis.interview.cinema.BaseIntegrationTest
+import dgis.interview.cinema.SafeErrorRes
+import dgis.interview.cinema.extractBody
+import dgis.interview.cinema.readPayload
 import dgis.interview.cinema.room.AddRoomReq
 import dgis.interview.cinema.room.Seat
 import dgis.interview.cinema.session.AddSessionReq
-import io.restassured.RestAssured
+import io.kotest.matchers.shouldBe
 import io.restassured.filter.log.ResponseLoggingFilter
 import io.restassured.http.ContentType
+import io.restassured.module.kotlin.extensions.Extract
 import io.restassured.module.kotlin.extensions.Given
 import io.restassured.module.kotlin.extensions.Then
 import io.restassured.module.kotlin.extensions.When
@@ -16,26 +19,17 @@ import org.flywaydb.core.Flyway
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.*
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.web.server.LocalServerPort
 
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
-)
 internal class ReservationEndpointTest(
-        @LocalServerPort
-        val port: Int,
-        @Autowired
-        val flyway: Flyway
-){
-
-    private val serializer = ObjectMapper()
+        @LocalServerPort port: Int,
+        @Autowired flyway: Flyway
+): BaseIntegrationTest(port, flyway){
 
     private val room = AddRoomReq(1, mapOf(1 to 2, 2 to 2))
-    private val session = AddSessionReq(id = 1, roomId = room.id)
-    private val customer1 = Customer(1L)
-    private val customer2 = Customer(2L)
-    private val customer3 = Customer(3L)
+    private val session = AddSessionReq(id = 1, roomExternalId = room.id)
+    private val customer1 = 1
+    private val customer2 = 2
     private val seats1 = listOf(
             Seat(1, 1),
             Seat(2, 2)
@@ -47,56 +41,23 @@ internal class ReservationEndpointTest(
     private val after1Statuses = setOf(
             SeatStatus(Seat(1, 1), false),
             SeatStatus(Seat(1, 2), true),
+            SeatStatus(Seat(2, 1), true),
             SeatStatus(Seat(2, 2), false),
-            SeatStatus(Seat(2, 2), true),
     )
-
-    init {
-        RestAssured.port = port
-        flyway.clean()
-        flyway.migrate()
-
-        Given {
-            body(serializer.writeValueAsString(room))
-            contentType(ContentType.JSON)
-        } When {
-            put("/room")
-        } Then {
-            statusCode(200)
-        }
-
-        Given {
-            body(serializer.writeValueAsString(session))
-            contentType(ContentType.JSON)
-        } When {
-            put("/session")
-        } Then {
-            statusCode(200)
-        }
-
-        Given {
-            body(serializer.writeValueAsString(customer1))
-            contentType(ContentType.JSON)
-        } When {
-            put("/customer")
-        } Then {
-            statusCode(200)
-        }
-    }
 
     @Test
     fun `should reserve seats successfully`() {
+        addRoom(room)
+        addSession(session)
+
         Given {
             param("sessionId", session.id)
-            param("customerId", customer1.id)
-            body(serializer.writeValueAsString(seats1))
+            param("customerId", customer1)
+            body(json.writeValueAsString(seats1))
             contentType(ContentType.JSON)
             filter(ResponseLoggingFilter())
-        } When {
-            put("/reservation")
-        } Then {
-            statusCode(200)
-        }
+        } When { put("/reservation")
+        } Then { statusCode(200) }
 
         Given {
             param("sessionId", session.id)
@@ -105,71 +66,82 @@ internal class ReservationEndpointTest(
             get("/reservation")
         } Then {
             statusCode(200)
-            //TODO: проверить тело
+            extractBody<List<SeatStatus>>(json).let {
+                it.size shouldBe after1Statuses.size
+                it.toSet() shouldBe after1Statuses
+            }
         }
     }
 
     @Test
     fun `already reserved`() {
-        Given {
-            body(serializer.writeValueAsString(customer2))
-            contentType(ContentType.JSON)
-        } When {
-            put("/customer")
-        } Then {
-            statusCode(200)
-        }
+        val roomId = this.room.id + 1
+        val sessionId = session.id + 1
+        val room = this.room.copy(id = roomId)
+        addRoom(room)
+        addSession(AddSessionReq(sessionId, roomId))
 
         Given {
-            param("sessionId", session.id)
-            param("customerId", customer2.id)
-            body(serializer.writeValueAsString(seats2))
+            param("sessionId", sessionId)
+            param("customerId", customer1)
+            body(json.writeValueAsString(seats1))
             contentType(ContentType.JSON)
-            filter(ResponseLoggingFilter())
-        } When {
-            put("/reservation")
+        } When { put("/reservation")
+        } Then { statusCode(200) }
+
+        Given {
+            param("sessionId", sessionId)
+            param("customerId", customer2)
+            body(json.writeValueAsString(seats2))
+            contentType(ContentType.JSON)
+        } When { put("/reservation")
         } Then {
             statusCode(409)
             body("code", equalTo("ALREADY_RESERVED"))
+            extractBody<SafeErrorRes>(json)
+                    .readPayload<List<Seat>>(json) shouldBe listOf(Seat(1,1))
         }
 
         Given {
-            param("sessionId", session.id)
+            param("sessionId", sessionId)
             filter(ResponseLoggingFilter())
-        } When {
-            get("/reservation")
+        } When { get("/reservation")
         } Then {
             statusCode(200)
-        }
-    }
-
-    @Test
-    fun `customer not found`(){
-        Given {
-            param("sessionId", session.id)
-            param("customerId", customer3.id)
-            body(serializer.writeValueAsString(seats1))
-            contentType(ContentType.JSON)
-        } When {
-            put("/reservation")
-        } Then {
-            statusCode(409)
-            body("code", equalTo("CUSTOMER_NOT_FOUND"))
+            extractBody<List<SeatStatus>>(json).let {
+                it.size shouldBe after1Statuses.size
+                it.toSet() shouldBe after1Statuses
+            }
         }
     }
 
     @Test
     fun `session not found`(){
         Given {
-            param("sessionId", session.id + 10)
-            param("customerId", customer1.id)
-            body(serializer.writeValueAsString(seats1))
+            param("sessionId", session.id + 2)
+            param("customerId", customer1)
+            body(json.writeValueAsString(seats1))
             contentType(ContentType.JSON)
-        } When {
-            put("/reservation")
+        } When { put("/reservation")
         } Then {
             statusCode(409)
             body("code", equalTo("SESSION_NOT_FOUND"))
         }
+    }
+
+    private fun addSession(session: AddSessionReq) {
+        Given {
+            body(json.writeValueAsString(session))
+            contentType(ContentType.JSON)
+        } When { put("/session")
+        } Then { statusCode(200) }
+    }
+
+    private fun addRoom(room: AddRoomReq) {
+        Given {
+            body(json.writeValueAsString(room))
+            contentType(ContentType.JSON)
+        } When { put("/room")
+        } Then { statusCode(200) }
     }
 }
