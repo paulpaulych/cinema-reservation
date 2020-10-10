@@ -2,6 +2,7 @@ package dgis.interview.cinema.room
 
 import dgis.interview.cinema.AddOneRes
 import dgis.interview.cinema.IdAccessRepo
+import dgis.interview.cinema.LoggerProperty
 import dgis.interview.cinema.db.DB
 import dgis.interview.cinema.db.hasAny
 import dgis.interview.cinema.db.queryList
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Repository
 class RoomRepo(
         private val db: DB
 ): IdAccessRepo<Room, Long> {
+
+    private val log by LoggerProperty()
 
     fun add(id: Long, rowSizes: Map<Int, Int>): AddOneRes =
         db.inTransaction(isolation = Isolation.REPEATABLE_READ) {
@@ -40,15 +43,23 @@ class RoomRepo(
         }
 
     override fun findById(id: Long): Room? {
-        val rowSizes =
-            db.inTransaction(isolation = Isolation.READ_COMMITTED) {
-                prepareStatement(ResourceLoader.asText("sql/room_by_id.sql"))
-                    .apply { setLong(1, id) }
-                    .queryList { rs, _ -> rs.getInt("row_num") to rs.getInt("seat_count") }
-                    .toMap()
-            }
+        val rowSizes = db.inTransaction(isolation = Isolation.READ_COMMITTED) {
+            prepareStatement(ResourceLoader.asText("sql/room_by_id.sql"))
+                .apply { setLong(1, id) }
+                .queryList { rs, _ -> rs.getInt("row_num") to rs.getInt("seat_count") }
+                .toMap()
+        }
         return if (rowSizes.isNotEmpty()) Room(rowSizes) else null
     }
+
+    fun existsById(id: Long): Boolean =
+        db.inTransaction(isolation = Isolation.READ_COMMITTED) {
+            prepareStatement("select id from rooms where id = ?")
+                .apply { setLong(1, id) }
+                .hasAny()
+        }
+
+
 
 }
 

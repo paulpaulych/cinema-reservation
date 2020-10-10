@@ -1,11 +1,13 @@
 server:
-  port: 8081
+  port: 8080
+  error:
+    include-message: always
 
 spring:
   datasource:
     username: user
     password: changeme
-    url: jdbc:postgresql://localhost:5433/reservation
+    url: jdbc:postgresql://database/reservation
     driver-class-name: org.postgresql.Driver
     hikari:
       connectionTimeout: 30000
@@ -16,8 +18,3 @@ spring:
 
   flyway:
     validate-migration-naming: true
-logging:
-  level:
-    org:
-      springframework:
-        web: trace

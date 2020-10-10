@@ -6,7 +6,7 @@ import dgis.interview.cinema.webcommon.throwIfNotValid
 import io.konform.validation.Validation
 import io.konform.validation.jsonschema.minimum
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -31,12 +31,12 @@ class RoomEndpoint(
         }
     }
 
-    @PutMapping
+    @PostMapping
     fun createRoom(@RequestBody req: AddRoomReq): ResponseEntity<*> {
         validation.throwIfNotValid(req)
 
         return when(roomRepo.add(req.id, req.rowSizes)){
-            is AddOneRes.Success -> HTTP.ok()
+            is AddOneRes.Success -> HTTP.created()
             is AddOneRes.AlreadyExists -> HTTP.conflict(code = ALREADY_EXISTS)
         }
     }

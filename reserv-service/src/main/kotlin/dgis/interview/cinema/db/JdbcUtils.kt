@@ -30,7 +30,6 @@ fun PreparedStatement.hasAny(): Boolean {
     return executeQuery().next()
 }
 
-
 fun <T> PreparedStatement.queryList(rowMapper: (ResultSet, Int) -> T): Collection<T> =
     RowMapperResultSetReader(rowMapper).read(this.executeQuery())
 
@@ -39,5 +38,3 @@ fun <T> PreparedStatement.queryList(rowMapper: (ResultSet, Int) -> T): Collectio
  */
 fun Connection.prepareInsertStatement(sql: String): PreparedStatement =
         prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
-
-

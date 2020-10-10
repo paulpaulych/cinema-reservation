@@ -27,7 +27,7 @@ internal class SessionEndpointTest(
         Given {
             body(json.writeValueAsString(session1))
             contentType(ContentType.JSON)
-        } When { put("/session") } Then {
+        } When { post("/session") } Then {
             statusCode(409)
             body("code", equalTo("ROOM_NOT_FOUND"))
         }
@@ -41,8 +41,8 @@ internal class SessionEndpointTest(
             body(json.writeValueAsString(session1))
             contentType(ContentType.JSON)
             filter(ResponseLoggingFilter())
-        } When { put("/session")
-        } Then { statusCode(200) }
+        } When { post("/session")
+        } Then { statusCode(201) }
     }
 
     @Test
@@ -52,14 +52,14 @@ internal class SessionEndpointTest(
         Given {
             body(json.writeValueAsString(session2))
             contentType(ContentType.JSON)
-        } When { put("/session")
-        } Then { statusCode(200) }
+        } When { post("/session")
+        } Then { statusCode(201) }
 
         Given {
             body(json.writeValueAsString(session2))
             contentType(ContentType.JSON)
             filter(ResponseLoggingFilter())
-        } When { put("/session")
+        } When { post("/session")
         } Then {
             statusCode(409)
             body("code", equalTo("ALREADY_EXISTS"))
@@ -70,7 +70,7 @@ internal class SessionEndpointTest(
         Given {
             body(json.writeValueAsString(room))
             contentType(ContentType.JSON)
-        } When { put("/room")
-        } Then { statusCode(200) }
+        } When { post("/room")
+        } Then { statusCode(201) }
     }
 }

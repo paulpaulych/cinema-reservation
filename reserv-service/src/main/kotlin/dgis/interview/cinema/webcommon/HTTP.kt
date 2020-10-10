@@ -9,9 +9,15 @@ import org.springframework.http.ResponseEntity
  */
 object HTTP {
 
-    fun ok(): ResponseEntity<Unit> = ResponseEntity.ok().build()
+    fun created(): ResponseEntity<Unit> =
+        ResponseEntity
+            .status(HttpStatus.CREATED)
+            .build()
 
-    fun <T> ok(body: T): ResponseEntity<T> = ResponseEntity.ok().body(body)
+    fun <T> ok(body: T): ResponseEntity<T> =
+        ResponseEntity
+            .ok()
+            .body(body)
 
     fun conflict(
             code: String,
@@ -19,7 +25,7 @@ object HTTP {
             payload: Any? = null): ResponseEntity<ErrorRes> =
         conflict(ErrorRes(code, message, payload))
 
-    fun conflict(body: ErrorRes): ResponseEntity<ErrorRes> =
+    private fun conflict(body: ErrorRes): ResponseEntity<ErrorRes> =
         ResponseEntity
             .status(HttpStatus.CONFLICT)
             .body(body)

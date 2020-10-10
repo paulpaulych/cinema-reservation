@@ -1,5 +1,4 @@
 plugins {
-    val kotlinVersion: String by System.getProperties()
     kotlin("jvm")
     kotlin("plugin.spring")
     kotlin("kapt")
@@ -51,10 +50,28 @@ tasks {
     test {
         useJUnitPlatform()
     }
+
+    val deployPath = "../deploy/server/bin/"
+    val jarName = "reserv-service.jar"
+    register("copyJar", Copy::class){
+        from(bootJar)
+        rename ("reserv-service-${project.version}.jar", jarName)
+        into(deployPath)
+    }
+    register("deleteJar", Delete::class){
+        delete("$deployPath/$jarName")
+    }
+
+    build {
+        finalizedBy(named("copyJar"))
+    }
+    clean {
+        finalizedBy(named("deleteJar"))
+    }
 }
 
 configurations {
     springBoot {
-        mainClassName = "dgis/interview/cinema/AppKt"
+        mainClassName = "dgis.interview.cinema.AppKt"
     }
 }

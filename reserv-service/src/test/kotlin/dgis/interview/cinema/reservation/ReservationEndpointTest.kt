@@ -25,16 +25,16 @@ internal class ReservationEndpointTest(
 ): BaseIntegrationTest(port, flyway){
 
     private val room = AddRoomReq(1, mapOf(1 to 2, 2 to 2))
-    private val session = AddSessionReq(id = 1, roomExternalId = room.id)
-    private val customer1 = 1
-    private val customer2 = 2
-    private val seats1 = listOf(
-            Seat(1, 1),
-            Seat(2, 2)
+    private val session = AddSessionReq(id = 1, roomId = room.id)
+    private val customer1 = 1L
+    private val customer2 = 2L
+    private val reservation1 = Reservation(
+            customer1,
+            listOf(Seat(1, 1), Seat(2, 2))
     )
-    private val seats2 = listOf(
-            Seat(1, 1),
-            Seat(1, 2)
+    private val reservation2 = Reservation(
+            customer2,
+            listOf(Seat(1, 1), Seat(1, 2))
     )
     private val after1Statuses = setOf(
             SeatStatus(Seat(1, 1), 1),
@@ -49,19 +49,15 @@ internal class ReservationEndpointTest(
         addSession(session)
 
         Given {
-            param("sessionId", session.id)
-            param("customerId", customer1)
-            body(json.writeValueAsString(seats1))
+            body(json.writeValueAsString(reservation1))
             contentType(ContentType.JSON)
             filter(ResponseLoggingFilter())
-        } When { put("/reservation")
-        } Then { statusCode(200) }
+        } When { post("/session/${session.id}/reservation")
+        } Then { statusCode(201) }
 
         Given {
-            param("sessionId", session.id)
             filter(ResponseLoggingFilter())
-        } When {
-            get("/reservation")
+        } When { get("/session/${session.id}/reservation")
         } Then {
             statusCode(200)
             extractBody<List<SeatStatus>>(json).let {
@@ -80,19 +76,15 @@ internal class ReservationEndpointTest(
         addSession(AddSessionReq(sessionId, roomId))
 
         Given {
-            param("sessionId", sessionId)
-            param("customerId", customer1)
-            body(json.writeValueAsString(seats1))
+            body(json.writeValueAsString(reservation1))
             contentType(ContentType.JSON)
-        } When { put("/reservation")
-        } Then { statusCode(200) }
+        } When { post("/session/${sessionId}/reservation")
+        } Then { statusCode(201) }
 
         Given {
-            param("sessionId", sessionId)
-            param("customerId", customer2)
-            body(json.writeValueAsString(seats2))
+            body(json.writeValueAsString(reservation2))
             contentType(ContentType.JSON)
-        } When { put("/reservation")
+        } When { post("/session/${sessionId}/reservation")
         } Then {
             statusCode(409)
             body("code", equalTo("ALREADY_RESERVED"))
@@ -101,9 +93,8 @@ internal class ReservationEndpointTest(
         }
 
         Given {
-            param("sessionId", sessionId)
             filter(ResponseLoggingFilter())
-        } When { get("/reservation")
+        } When { get("/session/${sessionId}/reservation")
         } Then {
             statusCode(200)
             extractBody<List<SeatStatus>>(json).let {
@@ -116,11 +107,10 @@ internal class ReservationEndpointTest(
     @Test
     fun `session not found`(){
         Given {
-            param("sessionId", session.id + 2)
-            param("customerId", customer1)
-            body(json.writeValueAsString(seats1))
+            body(json.writeValueAsString(reservation1))
             contentType(ContentType.JSON)
-        } When { put("/reservation")
+            filter(ResponseLoggingFilter())
+        } When { post("/session/${session.id + 2}/reservation")
         } Then {
             statusCode(409)
             body("code", equalTo("SESSION_NOT_FOUND"))
@@ -131,15 +121,15 @@ internal class ReservationEndpointTest(
         Given {
             body(json.writeValueAsString(session))
             contentType(ContentType.JSON)
-        } When { put("/session")
-        } Then { statusCode(200) }
+        } When { post("/session")
+        } Then { statusCode(201) }
     }
 
     private fun addRoom(room: AddRoomReq) {
         Given {
             body(json.writeValueAsString(room))
             contentType(ContentType.JSON)
-        } When { put("/room")
-        } Then { statusCode(200) }
+        } When { post("/room")
+        } Then { statusCode(201) }
     }
 }

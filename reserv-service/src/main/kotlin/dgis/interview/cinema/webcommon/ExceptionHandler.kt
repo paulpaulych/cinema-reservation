@@ -16,19 +16,5 @@ class ExceptionHandler {
             .body(ValidationError(e.errors))
     }
 
-    @ExceptionHandler(Throwable::class)
-    fun handleThrowable(e: Throwable): ResponseEntity<GenericErrorRes>{
-        log.error(e.message, e)
-        return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(
-                GenericErrorRes(
-                    code = GenericErrorCode.GENERIC_SERVER_ERROR,
-                    message = e.message ?: e.cause?.message ?: "unreadable error",
-                    payload = null
-                )
-            )
-    }
-
 }
 

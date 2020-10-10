@@ -44,7 +44,7 @@ class NoPropagationJdbcTxManager(
     }
 }
 
-private class ThreadLocalTxHolder {
+class ThreadLocalTxHolder {
 
     private val threadLocal = ThreadLocal.withInitial { ArrayDeque<JdbcTransaction>() }
 

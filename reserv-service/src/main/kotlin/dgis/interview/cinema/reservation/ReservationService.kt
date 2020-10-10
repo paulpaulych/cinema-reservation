@@ -6,7 +6,6 @@ import dgis.interview.cinema.room.SeatPresenceRes
 import dgis.interview.cinema.room.Seat
 import dgis.interview.cinema.session.SessionRepo
 import dgis.interview.cinema.transaction.Isolation
-import dgis.interview.cinema.transaction.Propagation
 import org.springframework.stereotype.Service
 
 @Service
@@ -18,14 +17,14 @@ class ReservationService(
 
     private val log by LoggerProperty()
 
-    fun reserveSeats(sessionId: Long, customerId: Long, seats: List<Seat>): ReservationRes {
+    fun reserveSeats(sessionId: Long, acquired: Reservation): ReservationRes {
         /*
         не включаем это в транзакцию с учетом того что сеанс и кинозал
         не могут быть удалены или изменены
         */
         val session = sessionRepo.findById(sessionId)
             ?: return ReservationRes.SessionNotFound
-        (session.room.hasSeats(seats) as? SeatPresenceRes.Missed)
+        (session.room.hasSeats(acquired.seats) as? SeatPresenceRes.Missed)
             ?.let { return ReservationRes.SeatsMissing(it.seats) }
 
         return db.inTransaction(
@@ -35,11 +34,11 @@ class ReservationService(
                 .flatMap { it.seats }
                 .toSet()
             log.debug("fetched reserved seats by session(id = {}): {}", sessionId, reserved)
-            val (collided, free) = seats.partition { reserved.contains(it) }
+            val (collided, free) = acquired.seats.partition { reserved.contains(it) }
             if (collided.isNotEmpty()) {
                 return@inTransaction ReservationRes.AlreadyReserved(collided)
             }
-            reservationRepo.add(sessionId, customerId, free)
+            reservationRepo.add(sessionId, acquired.customerId, free)
             ReservationRes.Success
         }
     }
@@ -74,6 +73,5 @@ sealed class ReservationRes {
     object Success: ReservationRes()
     object SessionNotFound: ReservationRes()
     data class AlreadyReserved(val reservedSeats: List<Seat>): ReservationRes()
-    //TODO: missing или absent
     data class SeatsMissing(val seats: List<Seat>): ReservationRes()
 }

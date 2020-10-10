@@ -22,12 +22,21 @@ internal class RoomEndpointTest(
     private val room2 = AddRoomReq(1, mapOf(1 to 1, 2 to 2))
 
     @Test
+    fun `should return 400 for req without body`(){
+        Given {
+            contentType(ContentType.JSON)
+            filter(ResponseLoggingFilter())
+        } When { post("/room")
+        } Then { statusCode(400) }
+    }
+
+    @Test
     fun `should register new customer successfully`() {
         Given {
             body(json.writeValueAsString(room1))
             contentType(ContentType.JSON)
-        } When { put("/room")
-        } Then { statusCode(200) }
+        } When { post("/room")
+        } Then { statusCode(201) }
     }
 
     @Test
@@ -35,13 +44,13 @@ internal class RoomEndpointTest(
         Given {
             body(json.writeValueAsString(room2))
             contentType(ContentType.JSON)
-        } When { put("/room")
-        } Then { statusCode(200) }
+        } When { post("/room")
+        } Then { statusCode(201) }
 
         Given {
             body(json.writeValueAsString(room2))
             contentType(ContentType.JSON)
-        } When { put("/room")
+        } When { post("/room")
         } Then {
             statusCode(409)
             body("code", equalTo("ALREADY_EXISTS"))
@@ -54,7 +63,7 @@ internal class RoomEndpointTest(
             body(json.writeValueAsString(AddRoomReq(12, mapOf())))
             contentType(ContentType.JSON)
             filter(ResponseLoggingFilter())
-        } When { put("/room")
+        } When { post("/room")
         } Then { statusCode(400) }
     }
 }

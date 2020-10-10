@@ -12,8 +12,9 @@ class SessionService(
 ){
 
     fun addSession(sessionId: Long, roomId: Long): AddSessionRes {
-        roomRepo.findById(roomId)
-            ?: return AddSessionRes.RoomNotFound
+        if(!roomRepo.existsById(roomId)){
+            return AddSessionRes.RoomNotFound
+        }
         return when(sessionRepo.add(sessionId, roomId)){
             is AddOneRes.Success -> AddSessionRes.Success
             is AddOneRes.AlreadyExists -> AddSessionRes.AlreadyExists
