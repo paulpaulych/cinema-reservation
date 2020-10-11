@@ -1,4 +1,4 @@
-package dgis.interview.cinema.transaction
+package dgis.interview.cinema.db.transaction
 
 import java.sql.Connection
 import java.util.concurrent.atomic.AtomicLong
@@ -7,11 +7,11 @@ data class JdbcTransactionDef(
     val isolation: Isolation,
     val propagation: Propagation
 ) {
-    val id: Long = next
+    val id: Long = nextId()
+
     companion object {
         private val lastId = AtomicLong(0)
-        private val next
-            get() = lastId.incrementAndGet()
+        private fun nextId() = lastId.incrementAndGet()
     }
 }
 
@@ -29,7 +29,7 @@ enum class Isolation{
     REPEATABLE_READ,
     SERIALIZABLE;
 
-    fun jdbcConst() =
+    fun jdbcConst(): Int =
         when(this){
             READ_UNCOMMITTED -> Connection.TRANSACTION_READ_UNCOMMITTED
             READ_COMMITTED -> Connection.TRANSACTION_READ_COMMITTED

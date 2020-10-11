@@ -3,10 +3,7 @@ package dgis.interview.cinema.webcommon
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 
-/**
- * Используется для формирования ответа RestController.
- * Ничто кроме этого класса для данной цели не используется
- */
+
 object HTTP {
 
     fun created(): ResponseEntity<Unit> =
@@ -20,7 +17,7 @@ object HTTP {
             .body(body)
 
     fun conflict(
-            code: String,
+            code: ErrorCode,
             message: String? = null,
             payload: Any? = null): ResponseEntity<ErrorRes> =
         conflict(ErrorRes(code, message, payload))

@@ -1,7 +1,8 @@
+
 plugins {
     val kotlinVersion = "1.4.10"
-    val springBootVersion: String by System.getProperties()
-    val flywayVersion: String by System.getProperties()
+    val springBootVersion = "2.3.4.RELEASE"
+    val flywayVersion = "6.5.6"
 
     kotlin("jvm") version kotlinVersion apply false
     kotlin("multiplatform") version kotlinVersion apply false
@@ -18,6 +19,7 @@ allprojects {
      * если обратная совместимость не нарушается, то минорное значение увеличивается на единицу.
      * иначе меняется второе значение, а минор обнуляется
      */
+
     version = "0.0.1"
     group = "io.github.paulpaulych.cinema-reservation"
 

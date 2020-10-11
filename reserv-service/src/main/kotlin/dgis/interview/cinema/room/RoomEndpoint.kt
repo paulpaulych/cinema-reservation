@@ -1,6 +1,7 @@
 package dgis.interview.cinema.room
 
-import dgis.interview.cinema.AddOneRes
+import dgis.interview.cinema.db.AddOneRes
+import dgis.interview.cinema.webcommon.ErrorCode
 import dgis.interview.cinema.webcommon.HTTP
 import dgis.interview.cinema.webcommon.throwIfNotValid
 import io.konform.validation.Validation
@@ -16,7 +17,6 @@ data class AddRoomReq(
         val rowSizes: Map<Int, Int>
 )
 
-private const val ALREADY_EXISTS = "ALREADY_EXISTS"
 @RestController
 @RequestMapping("/room")
 class RoomEndpoint(
@@ -37,7 +37,7 @@ class RoomEndpoint(
 
         return when(roomRepo.add(req.id, req.rowSizes)){
             is AddOneRes.Success -> HTTP.created()
-            is AddOneRes.AlreadyExists -> HTTP.conflict(code = ALREADY_EXISTS)
+            is AddOneRes.AlreadyExists -> HTTP.conflict(code = ErrorCode.ALREADY_EXISTS)
         }
     }
 

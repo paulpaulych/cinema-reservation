@@ -1,4 +1,4 @@
-package dgis.interview.cinema.transaction
+package dgis.interview.cinema.db.transaction
 
 interface IJdbcTxManager{
     fun getTransaction(def: JdbcTransactionDef): JdbcTransaction

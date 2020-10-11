@@ -1,5 +1,6 @@
 package dgis.interview.cinema.session
 
+import dgis.interview.cinema.webcommon.ErrorCode
 import dgis.interview.cinema.webcommon.HTTP
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -12,11 +13,6 @@ data class AddSessionReq(
         val roomId: Long
 )
 
-private enum class ErrorCode {
-    ROOM_NOT_FOUND,
-    ALREADY_EXISTS
-}
-
 @RestController
 @RequestMapping("/session")
 class SessionEndpoint(
@@ -27,7 +23,7 @@ class SessionEndpoint(
     fun addSession(@RequestBody req: AddSessionReq): ResponseEntity<*> =
         when(sessionService.addSession(req.id, req.roomId)){
             is AddSessionRes.Success -> HTTP.created()
-            is AddSessionRes.RoomNotFound -> HTTP.conflict(code = ErrorCode.ROOM_NOT_FOUND.name)
-            is AddSessionRes.AlreadyExists -> HTTP.conflict(code = ErrorCode.ALREADY_EXISTS.name)
+            is AddSessionRes.RoomNotFound -> HTTP.conflict(code = ErrorCode.ROOM_NOT_FOUND)
+            is AddSessionRes.AlreadyExists -> HTTP.conflict(code = ErrorCode.ALREADY_EXISTS)
         }
 }

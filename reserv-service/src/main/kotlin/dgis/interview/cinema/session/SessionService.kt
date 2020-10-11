@@ -1,6 +1,6 @@
 package dgis.interview.cinema.session
 
-import dgis.interview.cinema.AddOneRes
+import dgis.interview.cinema.db.AddOneRes
 import dgis.interview.cinema.room.RoomRepo
 import org.springframework.stereotype.Service
 
@@ -20,7 +20,6 @@ class SessionService(
             is AddOneRes.AlreadyExists -> AddSessionRes.AlreadyExists
         }
     }
-
 }
 
 sealed class AddSessionRes{

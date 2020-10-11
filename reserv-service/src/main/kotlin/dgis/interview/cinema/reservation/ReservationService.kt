@@ -1,11 +1,11 @@
 package dgis.interview.cinema.reservation
 
 import dgis.interview.cinema.LoggerProperty
-import dgis.interview.cinema.db.DB
-import dgis.interview.cinema.room.SeatPresenceRes
+import dgis.interview.cinema.db.transaction.DB
 import dgis.interview.cinema.room.Seat
+import dgis.interview.cinema.room.SeatPresenceRes
 import dgis.interview.cinema.session.SessionRepo
-import dgis.interview.cinema.transaction.Isolation
+import dgis.interview.cinema.db.transaction.Isolation
 import org.springframework.stereotype.Service
 
 @Service
@@ -27,9 +27,7 @@ class ReservationService(
         (session.room.hasSeats(acquired.seats) as? SeatPresenceRes.Missed)
             ?.let { return ReservationRes.SeatsMissing(it.seats) }
 
-        return db.inTransaction(
-            isolation = Isolation.REPEATABLE_READ) {
-
+        return db.inTransaction(Isolation.SERIALIZABLE) {
             val reserved = reservationRepo.findBySession(session.id)
                 .flatMap { it.seats }
                 .toSet()
@@ -46,28 +44,19 @@ class ReservationService(
     fun getReservationStatus(sessionId: Long): ReservationStatusRes {
         val session = sessionRepo.findById(sessionId)
             ?: return ReservationStatusRes.SessionNotFound
-        val customerBySeat = reservationRepo.findBySession(sessionId)
-            .flatMap { (customerId, seats) -> seats.map { it to customerId } }
-            .toMap()
-        val seatStatuses = session.room.getAllSeats()
-            .map { SeatStatus(it, customerBySeat[it]) }
-            .toList()
+        val reservations = reservationRepo.findBySession(sessionId)
+
+        val seatStatuses = getSeatStatuses(session.room, reservations)
+
         return ReservationStatusRes.Success(seatStatuses)
     }
 }
-
-
 
 sealed class ReservationStatusRes {
     object SessionNotFound: ReservationStatusRes()
     data class Success(val seatStatuses: List<SeatStatus>)
         : ReservationStatusRes()
 }
-
-data class SeatStatus(
-    val seat: Seat,
-    val customerId: Long?,
-)
 
 sealed class ReservationRes {
     object Success: ReservationRes()

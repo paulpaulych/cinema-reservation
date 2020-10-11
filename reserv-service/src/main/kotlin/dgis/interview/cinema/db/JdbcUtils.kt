@@ -4,6 +4,12 @@ import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
+/**
+ * prepares [PreparedStatement] which returns generated keys
+ */
+fun Connection.prepareInsertStatement(sql: String): PreparedStatement =
+    prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
+
 interface ResultSetReader<T> {
     fun read(resultSet: ResultSet): Collection<T>
 }
@@ -21,20 +27,20 @@ class RowMapperResultSetReader<T>(
     }
 }
 
+/**
+ * returns first row of result set mapped by rowMapper if exists
+ * fails if result set has more rows
+ */
 fun <T> PreparedStatement.queryOne(rowMapper: (ResultSet) -> T): T? =
     queryList { rs, _ -> rowMapper(rs)}
-        .takeIf { it.size == 1 }
+        .takeIf {
+            check(it.size <= 1){ "result set must contain only zero or one rows" }
+            it.size == 1
+        }
         ?.first()
 
-fun PreparedStatement.hasAny(): Boolean {
-    return executeQuery().next()
-}
+fun ResultSet.hasAny(): Boolean = next()
 
 fun <T> PreparedStatement.queryList(rowMapper: (ResultSet, Int) -> T): Collection<T> =
     RowMapperResultSetReader(rowMapper).read(this.executeQuery())
 
-/**
- * prepares [PreparedStatement] which returns generated keys
- */
-fun Connection.prepareInsertStatement(sql: String): PreparedStatement =
-        prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)

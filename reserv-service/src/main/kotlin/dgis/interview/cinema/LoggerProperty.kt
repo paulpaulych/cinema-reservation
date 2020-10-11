@@ -9,7 +9,7 @@ import kotlin.reflect.KProperty
  * Позволяет объявлять логгер в виде:
  * private val log by LoggerProperty()
  * Это короче, чем явное использование LoggerFactory
- * Меньше зависимостей, чем при использовании аннотации Ломбока
+ * Меньше зависимостей от левых библиотек, чем при использовании аннотаций Ломбока
  */
 class LoggerProperty : ReadOnlyProperty<Any?, Logger> {
 

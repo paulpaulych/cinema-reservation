@@ -1,9 +1,8 @@
-package dgis.interview.cinema
+package dgis.interview.cinema.db
 
-interface IdAccessRepo<T, ID>{
-    fun findById(id: ID): T?
-}
-
+/**
+ * default return value for add-one operations
+ */
 sealed class AddOneRes {
     object Success: AddOneRes()
     object AlreadyExists: AddOneRes()

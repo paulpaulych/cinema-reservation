@@ -2,14 +2,11 @@ package dgis.interview.cinema.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import dgis.interview.cinema.transaction.IJdbcTxManager
-import dgis.interview.cinema.transaction.Isolation
-import dgis.interview.cinema.transaction.JdbcTransactionDef
-import dgis.interview.cinema.transaction.Propagation
+import dgis.interview.cinema.db.transaction.DB
+import dgis.interview.cinema.db.transaction.NoPropagationJdbcTxManager
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.sql.Connection
 import javax.sql.DataSource
 
 @Configuration
@@ -40,21 +37,3 @@ class DataSourceConfig(
         DB(NoPropagationJdbcTxManager(dataSource))
 }
 
-class DB(
-    private val transactionManager: IJdbcTxManager
-){
-
-    fun <T> inTransaction(isolation: Isolation,
-                          propagation: Propagation = Propagation.USE_EXISTING,
-                          action: Connection.() -> T): T {
-        val def = JdbcTransactionDef(isolation, propagation)
-        val tx = transactionManager.getTransaction(def)
-        return runCatching {
-            action.invoke(tx.connection)
-        }.onFailure {
-            transactionManager.rollback(tx)
-        }.onSuccess {
-            transactionManager.commit(tx)
-        }.getOrThrow()
-    }
-}

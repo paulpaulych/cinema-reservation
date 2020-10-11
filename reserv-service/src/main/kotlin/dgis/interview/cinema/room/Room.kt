@@ -24,7 +24,6 @@ data class Room (
                     ?.let{seat.copy(seatNum = it)}
             }
         }.reduce(Sequence<Seat>::plus)
-
 }
 
 data class Seat (

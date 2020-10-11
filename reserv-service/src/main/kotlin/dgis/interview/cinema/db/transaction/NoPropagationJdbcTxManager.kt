@@ -1,9 +1,6 @@
-package dgis.interview.cinema.db
+package dgis.interview.cinema.db.transaction
 
 import dgis.interview.cinema.LoggerProperty
-import dgis.interview.cinema.transaction.IJdbcTxManager
-import dgis.interview.cinema.transaction.JdbcTransaction
-import dgis.interview.cinema.transaction.JdbcTransactionDef
 import javax.sql.DataSource
 
 /**
@@ -17,7 +14,7 @@ class NoPropagationJdbcTxManager(
     private val txStorage = ThreadLocalTxHolder()
 
     /**
-     * Propagation config will be ignored
+     * Propagation parameter will be ignored
      */
     override fun getTransaction(def: JdbcTransactionDef): JdbcTransaction {
         val connection = dataSource.connection.apply {

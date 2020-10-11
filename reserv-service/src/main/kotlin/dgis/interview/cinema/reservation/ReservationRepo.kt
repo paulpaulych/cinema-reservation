@@ -3,30 +3,24 @@ package dgis.interview.cinema.reservation
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import dgis.interview.cinema.LoggerProperty
-import dgis.interview.cinema.db.DB
+import dgis.interview.cinema.ResourceLoader
+import dgis.interview.cinema.db.transaction.DB
 import dgis.interview.cinema.db.prepareInsertStatement
 import dgis.interview.cinema.db.queryList
-import dgis.interview.cinema.room.Room
 import dgis.interview.cinema.room.Seat
-import dgis.interview.cinema.session.SessionRepo
-import dgis.interview.cinema.transaction.Isolation
-import dgis.interview.cinema.transaction.Propagation
+import dgis.interview.cinema.db.transaction.Isolation
 import org.springframework.stereotype.Repository
 
 @Repository
 class ReservationRepo(
-    private val db: DB,
-    private val sessionRepo: SessionRepo
+    private val db: DB
 ) {
 
     private val log by LoggerProperty()
     private val json = jacksonObjectMapper()
 
     fun findBySession(sessionId: Long): Collection<Reservation> =
-        db.inTransaction(
-            isolation = Isolation.READ_COMMITTED,
-            propagation = Propagation.USE_EXISTING
-        ) {
+        db.inTransaction(Isolation.READ_COMMITTED) {
             val sql = ResourceLoader.asText("sql/reservations_by_session.sql")
             prepareStatement(sql)
                 .apply { setLong(1, sessionId) }
@@ -45,10 +39,7 @@ class ReservationRepo(
         log.debug("saving reservation: sessionId: {}, customerId: {}, seats: {}",
             sessionId, customerId, seats)
 
-        db.inTransaction(
-            isolation = Isolation.READ_COMMITTED,
-            propagation = Propagation.USE_EXISTING) {
-
+        db.inTransaction(Isolation.READ_COMMITTED) {
             val generatedId =
                 prepareInsertStatement("insert into reservations(session_id, customer_id) values(?, ?)")
                 .apply {
@@ -73,9 +64,4 @@ class ReservationRepo(
             }.executeBatch()
         }
     }
-}
-
-sealed class ReservedSeatsRes{
-    data class Success(val reservedSeats: Set<Seat>, val room: Room): ReservedSeatsRes()
-    object SessionNotFound: ReservedSeatsRes()
 }

@@ -1,8 +1,9 @@
-package dgis.interview.cinema.db
+package dgis.interview.cinema.db.transaction
 
 import dgis.interview.cinema.LoggerProperty
-import dgis.interview.cinema.transaction.*
 import javax.sql.DataSource
+
+
 /**
  * TODO: needs testing
  */
