@@ -88,7 +88,7 @@ sessionId - Идентификатор киносеанса
 
 | Поле           | Тип |  Описание           |
 | --- | --- | --- |
-| seatStatus.seats | Seat | место |
+| seatStatus.seat | Seat | место |
 | seatStatus.customerId | Long? | Идентификатор клиента, на которого забронировано место. null или отсутствие поля если свободно|
 
 Ошибки(без payload): SESSION_NOT_FOUND
