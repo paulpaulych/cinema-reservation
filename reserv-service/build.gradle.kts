@@ -1,8 +1,7 @@
 plugins {
-    val kotlinVersion: String by System.getProperties()
     kotlin("jvm")
-    kotlin("plugin.spring")
     kotlin("kapt")
+    kotlin("plugin.spring")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
     id("org.flywaydb.flyway")
@@ -15,8 +14,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     implementation("io.konform:konform-jvm:0.2.0")
 
@@ -26,7 +25,7 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api:1.7.30")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.11.3")
 
     testApi("org.junit.jupiter:junit-jupiter-api:5.5.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.5.0")
@@ -51,10 +50,28 @@ tasks {
     test {
         useJUnitPlatform()
     }
+
+    val deployPath = "../deploy/server/bin/"
+    val jarName = "reserv-service.jar"
+    register("copyJar", Copy::class){
+        from(bootJar)
+        rename ("reserv-service-${project.version}.jar", jarName)
+        into(deployPath)
+    }
+    register("deleteJar", Delete::class){
+        delete("$deployPath/$jarName")
+    }
+
+    build {
+        finalizedBy(named("copyJar"))
+    }
+    clean {
+        finalizedBy(named("deleteJar"))
+    }
 }
 
 configurations {
     springBoot {
-        mainClassName = "dgis/interview/cinema/AppKt"
+        mainClassName = "dgis.interview.cinema.AppKt"
     }
 }

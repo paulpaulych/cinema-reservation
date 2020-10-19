@@ -1,0 +1,61 @@
+### Добавить кинозал
+
+POST {{host}}:{{port}}/room
+Content-Type: application/json
+
+{
+  "id": 6,
+  "rowSizes": {
+    "1": 3,
+    "2": 4
+  }
+}
+
+### Добаить киносеанс
+
+POST {{host}}:{{port}}/session
+Content-Type: application/json
+
+{
+  "id": 4,
+  "roomId": 6
+}
+
+### Получить список мест по сеансу. Если свободно - то customerId = null
+
+GET {{host}}:{{port}}/session/4/reservation
+
+### забронировать места для клиента1
+
+POST {{host}}:{{port}}/session/4/reservation
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "seats": [
+    {
+    "rowNum": 1,
+    "seatNum": 1
+    }
+  ]
+}
+
+### пытаемся забронировать то же место для клиента2
+#должен вернуться список конфликтных мест
+
+POST {{host}}:{{port}}/session/4/reservation
+Content-Type: application/json
+
+{
+  "customerId": 2,
+  "seats": [
+    {
+      "rowNum": 1,
+      "seatNum": 1
+    }
+  ]
+}
+
+### еще раз информацию по сеансу:
+
+GET {{host}}:{{port}}/session/4/reservation
